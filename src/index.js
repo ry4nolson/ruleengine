@@ -7,8 +7,8 @@ const handlePoint = require('./routes/handlePoint');
 
 app.use(require('body-parser').json());
 
-app.get('/items', getItems);
-app.post('/items', addItem);
+app.get('/rules', getItems);
+app.post('/rules', addItem);
 app.post('/points', handlePoint);
 
 db.init().then(() => {
