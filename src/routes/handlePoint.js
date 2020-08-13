@@ -3,37 +3,46 @@ const twilio = require('twilio');
 const twilioClient = new twilio(process.env.TWILIO_SID, process.env.TWILIO_TOKEN);
 
 async function processRule(rule, point) {
+
+  let temp = point.value;
+
+  if (rule.unit.toLowerCase() == "fahrenheit")
+    temp = convertFtoC(temp);
+
   if (x.comparison == ">") {
-    if (point.value > x.temperature)
+    if (temp > rule.temp1)
       sendText(rule, point);
   } else if (x.comparison == "<") {
-    if (point.value < x.temperature)
+    if (temp < rule.temp1)
       sendText(rule, point);
   } else if (x.comparison == "><") {
-    if (point.value > x.temperature)
+    if (temp > rule.temp1 && temp < rule.temp2)
       sendText(rule, point);
   }
 }
 
+function convertFtoC(temp){
+  return (temp - 32) * (5/9);
+}
+
 async function sendText(rule, point) {
 
-  let comparison = "";
+  let message = "";
 
   switch(rule.comparison){
     case ">":
-      comparison = "over";
+      message = `over ${rule.temp1}`;
       break;
     case "<":
-      comparison = "under";
+      message = `under ${rule.temp1}`;
       break;
     case "><":
-      comparison = "over or under";
+      message = `between ${rule.temp1} and ${rule.temp2}`;
       break;
   }
 
   twilioClient.messages.create({
-    body: `${rule.sensor} current is measuring a  temperature of ${point.value} 
-    which is ${comparison} the threshold (${rule.temperature})`,
+    body: `${rule.sensor} sensor value (${point.value}) is currently ${message}`,
     to: process.env.TWILIO_TO,
     from: process.env.TWILIO_FROM
   })
@@ -57,12 +66,15 @@ module.exports = async (req, res) => {
     return;
   }
 
-
   const rules = await db.getRulesForSensor(req.body.id);
+
+  if (rules.length == 0){
+    res.status(500).send({errors: [`no rules for sensor '${req.body.id}`]})
+    return;
+  }
+
   let applicableRules = [];
   rules.foreEach(rule => {
     processRule(rule, point);
   });
-
-
 }
