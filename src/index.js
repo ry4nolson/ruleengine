@@ -1,18 +1,15 @@
 const express = require('express');
 const app = express();
 const db = require('./persistence');
-const getItems = require('./routes/getItems');
-const addItem = require('./routes/addItem');
-const updateItem = require('./routes/updateItem');
-const deleteItem = require('./routes/deleteItem');
+const getItems = require('./routes/getRules');
+const addItem = require('./routes/addRule');
+const handlePoint = require('./routes/handlePoint');
 
 app.use(require('body-parser').json());
-app.use(express.static(__dirname + '/static'));
 
 app.get('/items', getItems);
 app.post('/items', addItem);
-app.put('/items/:id', updateItem);
-app.delete('/items/:id', deleteItem);
+app.post('/points', handlePoint);
 
 db.init().then(() => {
     app.listen(3000, () => console.log('Listening on port 3000'));
@@ -23,7 +20,7 @@ db.init().then(() => {
 
 const gracefulShutdown = () => {
     db.teardown()
-        .catch(() => {})
+        .catch(() => { })
         .then(() => process.exit());
 };
 

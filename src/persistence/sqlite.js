@@ -1,6 +1,6 @@
 const sqlite3 = require('sqlite3').verbose();
 const fs = require('fs');
-const location = process.env.SQLITE_DB_LOCATION || '/etc/todos/todo.db';
+const location = process.env.SQLITE_DB_LOCATION || '/etc/rules/rules.db';
 
 let db, dbAll, dbRun;
 
@@ -18,7 +18,7 @@ function init() {
                 console.log(`Using sqlite database at ${location}`);
 
             db.run(
-                'CREATE TABLE IF NOT EXISTS todo_items (id varchar(36), name varchar(255), completed boolean)',
+                'CREATE TABLE IF NOT EXISTS rules (id varchar(36), sensor varchar(255), comparison varchar(2), temp1 double, temp2 double)',
                 (err, result) => {
                     if (err) return rej(err);
                     acc();
@@ -37,41 +37,37 @@ async function teardown() {
     });
 }
 
-async function getItems() {
+async function getRules() {
     return new Promise((acc, rej) => {
-        db.all('SELECT * FROM todo_items', (err, rows) => {
+        db.all('SELECT * FROM rules', (err, rows) => {
             if (err) return rej(err);
-            acc(
-                rows.map(item =>
-                    Object.assign({}, item, {
-                        completed: item.completed === 1,
-                    }),
-                ),
-            );
+            acc(rows);
         });
     });
 }
 
-async function getItem(id) {
+async function getRulesForSensor(sensor) {
     return new Promise((acc, rej) => {
-        db.all('SELECT * FROM todo_items WHERE id=?', [id], (err, rows) => {
+        db.all('SELECT * FROM rules WHERE sensor=?', [sensor], (err, rows) => {
             if (err) return rej(err);
-            acc(
-                rows.map(item =>
-                    Object.assign({}, item, {
-                        completed: item.completed === 1,
-                    }),
-                )[0],
-            );
+            acc(rows);
         });
     });
 }
 
-async function storeItem(item) {
+async function storeRule(item) {
     return new Promise((acc, rej) => {
+
+        let temp1, temp2 = null;
+        if (Array.isArray(item.temperature)) {
+            temp1 = item.temperature[0];
+            temp2 = item.temperature[1];
+        } else
+            temp1 = item.temperature;
+
         db.run(
-            'INSERT INTO todo_items (id, name, completed) VALUES (?, ?, ?)',
-            [item.id, item.name, item.completed ? 1 : 0],
+            'INSERT INTO rules (id, sensor, comparison, temp1, temp2) VALUES (?, ?, ?, ?, ?)',
+            [item.id, item.sensor, item.comparison, item.temp1, item.temp2],
             err => {
                 if (err) return rej(err);
                 acc();
@@ -80,34 +76,11 @@ async function storeItem(item) {
     });
 }
 
-async function updateItem(id, item) {
-    return new Promise((acc, rej) => {
-        db.run(
-            'UPDATE todo_items SET name=?, completed=? WHERE id = ?',
-            [item.name, item.completed ? 1 : 0, id],
-            err => {
-                if (err) return rej(err);
-                acc();
-            },
-        );
-    });
-} 
-
-async function removeItem(id) {
-    return new Promise((acc, rej) => {
-        db.run('DELETE FROM todo_items WHERE id = ?', [id], err => {
-            if (err) return rej(err);
-            acc();
-        });
-    });
-}
 
 module.exports = {
     init,
     teardown,
-    getItems,
-    getItem,
-    storeItem,
-    updateItem,
-    removeItem,
+    getRules,
+    getRulesForSensor,
+    storeRule,
 };

@@ -1,5 +1,10 @@
 FROM node:12-alpine
 WORKDIR /app
 COPY . .
-RUN yarn install --production
+ENV TWILIO_SID="AC92d18eeea6fc5356d8b449cf31306615"
+ENV TWILIO_TOKEN="fde3eb44698c7a216d10ae18e3d3bfb3"
+ENV TWILIO_TO="+14093631006"
+ENV TWILIO_FROM="+17038324956"
+
+RUN npm update
 CMD ["node", "src/index.js"]
