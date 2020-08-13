@@ -28,6 +28,6 @@ POST {
  POST {
     "id": "test",
     "value" : 71,
-    "unit": "celcius"
+    "unit": "celsius"
  }
  ```
