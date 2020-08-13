@@ -2,7 +2,8 @@
 to run:
 
 * edit Dockerfile
-insert twilio SID and Auth
+
+populate twilio env variables
 
 ```
 docker build -t ruleengine .
