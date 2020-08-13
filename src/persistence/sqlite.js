@@ -65,9 +65,11 @@ async function storeRule(item) {
         } else
             temp1 = item.temperature;
 
+        console.log(item.temperature);
+
         db.run(
             'INSERT INTO rules (id, sensor, comparison, temp1, temp2) VALUES (?, ?, ?, ?, ?)',
-            [item.id, item.sensor, item.comparison, item.temp1, item.temp2],
+            [item.id, item.sensor, item.comparison, temp1, temp2],
             err => {
                 if (err) return rej(err);
                 acc();

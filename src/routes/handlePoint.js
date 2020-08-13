@@ -1,35 +1,40 @@
 const db = require('../persistence');
-const twilio = require('twilio');
-const twilioClient = new twilio(process.env.TWILIO_SID, process.env.TWILIO_TOKEN);
+const twilio = require('twilio')(process.env.TWILIO_SID, process.env.TWILIO_TOKEN);
+
+//console.log(process.env.TWILIO_SID, process.env.TWILIO_TOKEN);
+
+let delay = 0;
 
 async function processRule(rule, point) {
 
   let temp = point.value;
 
-  if (rule.unit.toLowerCase() == "fahrenheit")
+  if (point.unit.toLowerCase() == "fahrenheit")
     temp = convertFtoC(temp);
 
-  if (x.comparison == ">") {
+  if (rule.comparison == ">") {
     if (temp > rule.temp1)
-      sendText(rule, point);
-  } else if (x.comparison == "<") {
+      return sendText(rule, point, delay += 500);
+  } else if (rule.comparison == "<") {
     if (temp < rule.temp1)
-      sendText(rule, point);
-  } else if (x.comparison == "><") {
+      return sendText(rule, point, delay += 500);
+  } else if (rule.comparison == "><") {
     if (temp > rule.temp1 && temp < rule.temp2)
-      sendText(rule, point);
+      return sendText(rule, point), delay += 500;
   }
+
+  return false;
 }
 
-function convertFtoC(temp){
-  return (temp - 32) * (5/9);
+function convertFtoC(temp) {
+  return (temp - 32) * (5 / 9);
 }
 
-async function sendText(rule, point) {
+async function sendText(rule, point, delay) {
 
   let message = "";
 
-  switch(rule.comparison){
+  switch (rule.comparison) {
     case ">":
       message = `over ${rule.temp1}`;
       break;
@@ -41,12 +46,22 @@ async function sendText(rule, point) {
       break;
   }
 
-  twilioClient.messages.create({
-    body: `${rule.sensor} sensor value (${point.value}) is currently ${message}`,
+  let textBody = `${rule.sensor} sensor value (${point.value}) is currently ${message}`;
+
+  let sms = {
+    body: textBody,
     to: process.env.TWILIO_TO,
     from: process.env.TWILIO_FROM
-  })
-    .then((message) => console.log(message.sid));
+  };
+
+  console.log(sms);
+
+  setTimeout(() => {
+  twilio.messages.create(sms)
+    .then((message) => console.log(message.sid))
+    .catch(ex => console.log(ex));
+  }, delay);
+
 }
 
 module.exports = async (req, res) => {
@@ -68,13 +83,17 @@ module.exports = async (req, res) => {
 
   const rules = await db.getRulesForSensor(req.body.id);
 
-  if (rules.length == 0){
-    res.status(500).send({errors: [`no rules for sensor '${req.body.id}`]})
+  if (rules.length == 0) {
+    res.status(500).send({ errors: [`no rules for sensor '${req.body.id}`] })
     return;
   }
 
-  let applicableRules = [];
-  rules.foreEach(rule => {
-    processRule(rule, point);
+  let appliedRules = [];
+  let timeout = 0;
+  rules.forEach(rule => {
+    if (processRule(rule, point))
+      appliedRules.push(rule);
   });
+
+  res.send({ appliedRules: appliedRules });
 }
