@@ -15,6 +15,7 @@ apis can be accessed at localhost:3000
 endpoints:
  * `GET /rules`
  * `POST /rules`
+   * if `comparison` is `">"` or `"<"`, `temperature` is a `Number`, if `comparison` is `"><"`, `temperature` is an `Array` of `Number`(s)
 ```
 POST {
     "sensor": "test",
